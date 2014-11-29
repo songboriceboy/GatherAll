@@ -18,6 +18,14 @@ namespace BlogGather
 {
     public class BlogGatherCnblogs
     {
+        public class DelegatePara
+        {
+
+            public string strTitle;
+            public string strContent;
+        }
+        public delegate void GreetingDelegate(DelegatePara dp);
+        public event GreetingDelegate delAddBlog;
 
         private int m_nPageIndex = 0;
 
@@ -33,7 +41,8 @@ namespace BlogGather
         protected Queue<string> m_queueCheckUrls = new Queue<string>();
 
 
- 
+        private Dictionary<string, string> m_dicUrl2Title = new Dictionary<string, string>();
+
         protected virtual string GetUrlCss()
         {
             string strUrlCss = "div.forFlow";
@@ -59,7 +68,12 @@ namespace BlogGather
             if (NodesMainContent.Count() > 0)
             {
                 strMainContent = NodesMainContent.ToArray()[0].InnerHtml;
-                Console.WriteLine(strMainContent);
+                string strTitle = m_dicUrl2Title[strVisitUrl];
+                DelegatePara dp = new DelegatePara();
+                dp.strTitle = strTitle;
+                dp.strContent = strMainContent;
+                delAddBlog(dp);
+                //Console.WriteLine(strMainContent);
             }
         
             string strCategory = "未分类";
@@ -240,7 +254,8 @@ namespace BlogGather
                     }
                     if (bRet)
                     {
-                        Console.WriteLine(strLinkText);
+                       // Console.WriteLine(strLinkText);
+                        m_dicUrl2Title.Add(normalizedLink, strLinkText);
                         m_wd.AddUrlQueue(normalizedLink, GetReferer());
 
                     }
