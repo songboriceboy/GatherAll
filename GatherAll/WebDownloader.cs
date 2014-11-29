@@ -25,10 +25,7 @@ namespace BlogGather
         private readonly Stack<CrawlerItem> m_Stack = new Stack<CrawlerItem>();
    
 
- 
-       
-      
-        public string GetPageByHttpWebRequest(string url, Encoding encoding, string strRefer)
+        public string GetPageByHttpWebRequest(string url, Encoding encoding)
         {
  
 
@@ -42,12 +39,10 @@ namespace BlogGather
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
                 request.UserAgent = "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 2.0.50727)";
                 request.Accept = "image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/x-shockwave-flash, application/vnd.ms-excel, application/vnd.ms-powerpoint, application/msword, */*";
-                request.Referer = strRefer;
+                request.Referer = "";
                 request.Method = "GET";
                 response = request.GetResponse();
                 reader = new StreamReader(response.GetResponseStream(), encoding);
-                //reader = new StreamReader(response.GetResponseStream(), Encoding.GetEncoding("GB2312"));
-                //reader = new StreamReader(response.GetResponseStream(), Encoding.UTF8);
                 result = reader.ReadToEnd();
                 
             }
@@ -66,7 +61,7 @@ namespace BlogGather
             }
             return result;
         }
-        public void AddUrlQueue(string strUrl,string strRefer)
+        public void AddUrlQueue(string strUrl)
         {
             CrawlerItem cI = new CrawlerItem();
             cI.strUrl = strUrl;
@@ -80,7 +75,6 @@ namespace BlogGather
             PageResult pr = new PageResult();
             if (m_Stack.Count == 0)
             {
-                //CrawlFinished.ExecuteEvent(this, () => new CrawlFinishedEventArgs(this));
                 return null;
             }
             else 
@@ -88,7 +82,7 @@ namespace BlogGather
                 CrawlerItem cI = m_Stack.Pop();
                 string strContent = "";
                
-                strContent = GetPageByHttpWebRequest(cI.strUrl, encoding, cI.strRefer);
+                strContent = GetPageByHttpWebRequest(cI.strUrl, encoding);
    
                 pr.strPageContent = strContent;
                 pr.strVisitUrl = cI.strUrl;

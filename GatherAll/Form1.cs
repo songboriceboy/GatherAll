@@ -33,7 +33,7 @@ namespace GatherAll
             this.dataGridView1.Columns[1].Visible = false;
             this.dataGridView1.Columns[0].Width = this.Width;
         }
-        private void AddBlog(BlogGather.BlogGatherCnblogs.DelegatePara dp)
+        private void AddBlog(BlogGather.DelegatePara dp)
         {
             if (this.InvokeRequired)
             {

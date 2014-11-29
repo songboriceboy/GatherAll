@@ -16,42 +16,38 @@ using System.Windows.Forms;
 using mshtml;
 namespace BlogGather
 {
+    public class DelegatePara
+    {
+        public string strTitle;
+        public string strContent;
+    }
+
     public class BlogGatherCnblogs
     {
-        public class DelegatePara
-        {
-
-            public string strTitle;
-            public string strContent;
-        }
         public delegate void GreetingDelegate(DelegatePara dp);
         public event GreetingDelegate delAddBlog;
 
-        private int m_nPageIndex = 0;
+
         protected List<string> m_lstUrls = new List<string>();
         List<string> lstThisTimesUrls = new List<string>();
         private BloomFilter m_bf = new BloomFilter(10485760);
-  
-
-
         protected WebDownloader m_wd = new WebDownloader();
-       
         protected string m_strTaskName = "";
-
-    
-
 
         private Dictionary<string, string> m_dicUrl2Title = new Dictionary<string, string>();
 
-        protected virtual string GetUrlCss()
+        public BlogGatherCnblogs()
+        {
+
+        }
+
+        protected  string GetUrlCss()
         {
             string strUrlCss = "div.forFlow";
             return strUrlCss;
         }
-    
- 
 
-        protected virtual string SaveFinalPageContent(string strMainDateRules,
+        protected  string SaveFinalPageContent(string strMainDateRules,
                                 string strMainContentElementRules, string strVisitUrl, string strReturnPage)
         {
             string strRet = "";
@@ -73,29 +69,18 @@ namespace BlogGather
                 dp.strTitle = strTitle;
                 dp.strContent = strMainContent;
                 delAddBlog(dp);
-                //Console.WriteLine(strMainContent);
             }
-        
-            string strCategory = "未分类";
-     
-            DateTime dtDate = System.DateTime.Now.Date;
 
-
-            strRet = UpdateLayerNodeToSaveFinalPageContent(strVisitUrl, strMainContent, strCategory, dtDate);
             return strRet;
 
         }
 
-     
-        
-   
-
-        protected virtual string GetUrlFilterRule()
+        protected  string GetUrlFilterRule()
         {
-
             return @"www\.cnblogs\.com/" + m_strTaskName + @"/(p|archive/.*?/.*?/.*?)/.*?\.html$";
         }
-        protected virtual void GatherInitFirstUrls()
+
+        protected  void GatherInitFirstUrls()
         {
 
             m_lstUrls.Clear();
@@ -107,18 +92,17 @@ namespace BlogGather
             for (int i = 500; i > 0; i--)
             {
                 string strTemp = string.Format(strPage, i);
-                m_wd.AddUrlQueue(strTemp, GetReferer());
+                m_wd.AddUrlQueue(strTemp);
 
             }
         }
-        protected virtual Encoding GetBlogEncoding()
+
+        protected  Encoding GetBlogEncoding()
         {
             return Encoding.UTF8;
         }
    
-      
-
-        protected virtual string GetMainContentCss()
+        protected  string GetMainContentCss()
         {
            
             string strMainContentCss = "div#cnblogs_post_body";
@@ -126,26 +110,22 @@ namespace BlogGather
             return strMainContentCss;
         }
 
-      
-      
-      
-        public BlogGatherCnblogs()
-        {
-
-        }
         public BlogGatherCnblogs(string strTaskID)
         {
             m_strTaskName = strTaskID;
         }
-        protected virtual void ShortSleep()
+
+        protected  void ShortSleep()
         {
             return;
         }
-        protected virtual string ProcessCodeEmbeded(string strPage)
+
+        protected  string ProcessCodeEmbeded(string strPage)
         {
             return strPage;
         }
-        protected virtual bool IsFinalPage(string strVisitUrl, string strUrlFilterRule)
+
+        protected  bool IsFinalPage(string strVisitUrl, string strUrlFilterRule)
         {
             bool bRet = false;
 
@@ -156,42 +136,8 @@ namespace BlogGather
             }
             return bRet;
         }
-        private string StripJs(string source)
-        {
-            try
-            {
-                string result = source;
-
-                result = System.Text.RegularExpressions.Regex.Replace(result,
-                         @"<( )*script([^>])*>", "<script>",
-                         System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                result = System.Text.RegularExpressions.Regex.Replace(result,
-                         @"(<( )*(/)( )*script( )*>)", "</script>",
-                         System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-
-                result = System.Text.RegularExpressions.Regex.Replace(result,
-                         @"(<script>).*(</script>)", string.Empty,
-                         System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-
-                return result;
-            }
-            catch
-            {
-
-                return source;
-            }
-        }
-       
-    
-      
-        protected virtual string GetReferer()
-        {
-            string strReferer = "";
-
-            return strReferer;
-        }
-
-        protected virtual bool SaveUrlToDB(string strVisitUrl, string strReturnPage, DoWorkEventArgs e)
+ 
+        protected  bool SaveUrlToDB(string strVisitUrl, string strReturnPage, DoWorkEventArgs e)
         {
             try
             {
@@ -243,18 +189,13 @@ namespace BlogGather
                                 strLinkText = links.m_dicLink2Text[link].TrimEnd().TrimStart();
                         }
 
-
-
                         lstThisTimesUrls.Add(normalizedLink);
 
                         if (!m_dicUrl2Title.Keys.Contains(normalizedLink))
                         {
                             m_dicUrl2Title.Add(normalizedLink, strLinkText);
                         }
-                        m_wd.AddUrlQueue(normalizedLink, GetReferer());
-
-
-
+                        m_wd.AddUrlQueue(normalizedLink);
 
                     }
                 }
@@ -268,7 +209,6 @@ namespace BlogGather
             return bNoArticle;
 
         }
-
 
         private bool CheckArticles(List<string> lstThisTimesUrls)
         {
@@ -289,28 +229,20 @@ namespace BlogGather
 
             return bRet;
         }
-    
-       
 
-        protected virtual string NormalizeLink(string baseUrl, string link)
+        protected  string NormalizeLink(string baseUrl, string link)
         {
             return link.NormalizeUrl(baseUrl);
         }
-        protected virtual string GetNormalizedLink(string baseUrl, string decodedLink)
+        protected  string GetNormalizedLink(string baseUrl, string decodedLink)
         {
             string normalizedLink = NormalizeLink(baseUrl, decodedLink);
   
             return normalizedLink;
         }
 
- 
-
-
-
         public void GatherBlog(DoWorkEventArgs e)
         {
-            //m_bPostBlogID2Srv = GetPostBlogID2Srv();
-            //m_strTaskName = GetTaskName();
             m_wd = new WebDownloader();
   
             GatherInitFirstUrls();
@@ -325,9 +257,7 @@ namespace BlogGather
 
             if (!IsFinalPage(strVisitUrl, strUrlFilterRule))
             {
-                m_nPageIndex++;
-              
-    
+        
                 bool bNoArticle = SaveUrlToDB(strVisitUrl, strPageContent, e);
                 if (!bNoArticle)
                 {
@@ -336,7 +266,6 @@ namespace BlogGather
             }
             else
             {
-
                 if (strPageContent != "")
                 {
                     string strTitle = SaveFinalPageContent(""
@@ -344,27 +273,9 @@ namespace BlogGather
             
 
                 }
-                else
-                {
-                    string strTitle = GetBlogTitleByUrl(strVisitUrl);
-                }
+
                 BlogGatherNext(e);
             }
-        }
-        protected string UpdateLayerNodeToSaveFinalPageContent(string strVisitUrl, string strFinalContent
-            , string strCategory, DateTime dtDate)
-        {
-            string strRet = "";
-           
-            return strRet;
-        }
-
-        protected string GetBlogTitleByUrl(string strVisitUrl)
-        {
-            string strRet = "";
-  
-
-            return strRet;
         }
 
         private void BlogGatherNext(DoWorkEventArgs e)
@@ -398,7 +309,7 @@ namespace BlogGather
         protected string GetPageDefaultUTF8(string url)                                                       
         {
             WebDownloader wd = new WebDownloader();
-            string strPageHtml = wd.GetPageByHttpWebRequest(url, Encoding.UTF8, GetReferer());
+            string strPageHtml = wd.GetPageByHttpWebRequest(url, Encoding.UTF8);
 
             return strPageHtml;
           
