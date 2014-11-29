@@ -28,8 +28,8 @@ namespace BlogGather
         public event GreetingDelegate delAddBlog;
 
         private int m_nPageIndex = 0;
-
-
+        protected List<string> m_lstUrls = new List<string>();
+        List<string> lstThisTimesUrls = new List<string>();
         private BloomFilter m_bf = new BloomFilter(10485760);
   
 
@@ -38,7 +38,7 @@ namespace BlogGather
        
         protected string m_strTaskName = "";
 
-        protected Queue<string> m_queueCheckUrls = new Queue<string>();
+    
 
 
         private Dictionary<string, string> m_dicUrl2Title = new Dictionary<string, string>();
@@ -98,7 +98,7 @@ namespace BlogGather
         protected virtual void GatherInitFirstUrls()
         {
 
-            m_queueCheckUrls.Clear();
+            m_lstUrls.Clear();
             string strPagePre = "http://www.cnblogs.com/";
             string strPagePost = "/default.html?page={0}&OnlyTitle=1";
             string strPage = strPagePre + m_strTaskName + strPagePost;
@@ -193,90 +193,102 @@ namespace BlogGather
 
         protected virtual bool SaveUrlToDB(string strVisitUrl, string strReturnPage, DoWorkEventArgs e)
         {
-
-            string strUrlFilterRule = GetUrlFilterRule();
-            HtmlAgilityPack.HtmlDocument htmlDoc = GetHtmlDocument(strReturnPage);
-            string strUrlCss = GetUrlCss();
-            if (strUrlCss != "")
+            try
             {
-                IEnumerable<HtmlNode> NodesUrlContent = htmlDoc.DocumentNode.QuerySelectorAll(strUrlCss);
-                if (NodesUrlContent.Count() > 0)
+                string strUrlFilterRule = GetUrlFilterRule();
+                HtmlAgilityPack.HtmlDocument htmlDoc = GetHtmlDocument(strReturnPage);
+                string strUrlCss = GetUrlCss();
+                if (strUrlCss != "")
                 {
-                    strReturnPage = NodesUrlContent.ToArray()[0].InnerHtml;//进一步缩小范围
-                    htmlDoc = GetHtmlDocument(strReturnPage);
-                }
-            }
-            string baseUrl = new Uri(strVisitUrl).GetLeftPart(UriPartial.Authority);
-            DocumentWithLinks links = htmlDoc.GetLinks();
-            bool bNoArticle = true;
-            List<string> lstRevomeSame = new List<string>();
-            foreach (string link in links.Links.Union(links.References))
-            {
-
-                if (string.IsNullOrEmpty(link))
-                {
-                    continue;
-                }
-
-                string decodedLink = link;
-
-                string normalizedLink = GetNormalizedLink(baseUrl, decodedLink);
-    
-
-                if (string.IsNullOrEmpty(normalizedLink))
-                {
-                    continue;
-                }
-
-                MatchCollection matchs = Regex.Matches(normalizedLink, strUrlFilterRule, RegexOptions.Singleline);
-                if (matchs.Count > 0)
-                {
-                    string strLinkText = "";
-
-                    if (links.m_dicLink2Text.Keys.Contains(normalizedLink))
-                        strLinkText = links.m_dicLink2Text[normalizedLink];
-
-                    if (strLinkText == "")
+                    IEnumerable<HtmlNode> NodesUrlContent = htmlDoc.DocumentNode.QuerySelectorAll(strUrlCss);
+                    if (NodesUrlContent.Count() > 0)
                     {
-                        if (links.m_dicLink2Text.Keys.Contains(link))
-                            strLinkText = links.m_dicLink2Text[link].TrimEnd().TrimStart();
+                        strReturnPage = NodesUrlContent.ToArray()[0].InnerHtml;//进一步缩小范围
+                        htmlDoc = GetHtmlDocument(strReturnPage);
                     }
-                    if (lstRevomeSame.Contains(normalizedLink))
+                }
+                string baseUrl = new Uri(strVisitUrl).GetLeftPart(UriPartial.Authority);
+                DocumentWithLinks links = htmlDoc.GetLinks();
+
+
+                foreach (string link in links.Links.Union(links.References))
+                {
+
+                    if (string.IsNullOrEmpty(link))
+                    {
                         continue;
-                    else
-                        lstRevomeSame.Add(normalizedLink);
-                    bool bRet = AddLayerNodeToSaveUrlToDB("", normalizedLink, strLinkText);
-
-                    if (!m_queueCheckUrls.Contains(normalizedLink))
-                    {
-                        bNoArticle = false;
-                        m_queueCheckUrls.Enqueue(normalizedLink);
                     }
-                    if (bRet)
+
+                    string decodedLink = link;
+
+                    string normalizedLink = GetNormalizedLink(baseUrl, decodedLink);
+
+
+                    if (string.IsNullOrEmpty(normalizedLink))
                     {
-                       // Console.WriteLine(strLinkText);
-                        m_dicUrl2Title.Add(normalizedLink, strLinkText);
+                        continue;
+                    }
+
+                    MatchCollection matchs = Regex.Matches(normalizedLink, strUrlFilterRule, RegexOptions.Singleline);
+                    if (matchs.Count > 0)
+                    {
+                        string strLinkText = "";
+
+                        if (links.m_dicLink2Text.Keys.Contains(normalizedLink))
+                            strLinkText = links.m_dicLink2Text[normalizedLink];
+
+                        if (strLinkText == "")
+                        {
+                            if (links.m_dicLink2Text.Keys.Contains(link))
+                                strLinkText = links.m_dicLink2Text[link].TrimEnd().TrimStart();
+                        }
+
+
+
+                        lstThisTimesUrls.Add(normalizedLink);
+
+                        if (!m_dicUrl2Title.Keys.Contains(normalizedLink))
+                        {
+                            m_dicUrl2Title.Add(normalizedLink, strLinkText);
+                        }
                         m_wd.AddUrlQueue(normalizedLink, GetReferer());
 
-                    }
-                
 
+
+
+                    }
                 }
             }
-            if (m_queueCheckUrls.Count > 200)
+            catch (Exception ex)
             {
-                for (int i = 0; i < 100; i++)
-                {
-                    m_queueCheckUrls.Dequeue();
-                }
+
             }
+            bool bNoArticle = CheckArticles(lstThisTimesUrls);
 
             return bNoArticle;
 
         }
-  
-    
-      
+
+
+        private bool CheckArticles(List<string> lstThisTimesUrls)
+        {
+            bool bRet = true;
+            foreach (string strTemp in lstThisTimesUrls)
+            {
+                if (!m_lstUrls.Contains(strTemp))
+                {
+                    bRet = false;
+                    break;
+                }
+            }
+            foreach (string strTemp in lstThisTimesUrls)
+            {
+                if (!m_lstUrls.Contains(strTemp))
+                    m_lstUrls.Add(strTemp);
+            }
+
+            return bRet;
+        }
     
        
 
@@ -366,13 +378,7 @@ namespace BlogGather
         }
 
  
-        protected bool AddLayerNodeToSaveUrlToDB(string strWholeDbName, string strUrl, string strLinkText)
-        {
-
-  
-            return true;
-
-        }
+    
         protected HtmlAgilityPack.HtmlDocument GetHtmlDocument(string strPage)
         {
             HtmlAgilityPack.HtmlDocument htmlDoc = new HtmlAgilityPack.HtmlDocument
